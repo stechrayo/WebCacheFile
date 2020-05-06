@@ -3,7 +3,7 @@
 //  WebCacheFile
 //
 //  Created by LeiYinchun on 2020/4/26.
-//  Copyright © 2019年 LeiYinchun. All rights reserved.
+//  Copyright © 2020年 LeiYinchun. All rights reserved.
 //
 
 #import "WebCacheFile.h"
