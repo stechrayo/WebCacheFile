@@ -56,11 +56,13 @@ static NSArray* gMethods = nil;
   //标记该请求已经处理
   NSMutableURLRequest *mutableReqeust = [super.request mutableCopy];
   [NSURLProtocol setProperty:@YES forKey:RequestedFlag inRequest:mutableReqeust];
-
+  
   // 响应资源文件的拦截
   if([WebCacheFile isNeedInterceptWithResourceTypes:super.request]) {
+#ifdef WebCacheFile_DEBUG
     NSString *extension = mutableReqeust.URL.pathExtension;
     XLog(@"resource url: %@, extension: %@", mutableReqeust.URL.absoluteString, extension);
+#endif
     NSString *filePath = [self makeCacheFilePathByRequest];
     if ([[NSFileManager defaultManager] fileExistsAtPath:filePath]) {
       XLog(@"=== response local file: %@", filePath);
