@@ -25,9 +25,14 @@
   [super viewDidLoad];
   // Do any additional setup after loading the view.
   
+  [WebCacheFile initRegister:@[@"http", @"https"]];
+  [WebCacheFile setInterceptResourceTypes:@[@"js", @"css", @"png", @"jpg", @"gif"]];
   [self addWKWebView];
 }
 
+- (void)dealloc {
+  [WebCacheFile unregister];
+}
 
 - (void)addWKWebView
 {

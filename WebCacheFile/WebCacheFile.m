@@ -11,6 +11,12 @@
 #import <JKSandBoxManager/JKSandBoxManager.h>
 #import <AFNetworking/AFNetworking.h>
 
+#ifdef WebCacheFile_DEBUG
+#define XLog(format, ...) NSLog((@"函数名:%s " "[行号:%d]\n" format), __FUNCTION__, __LINE__, ##__VA_ARGS__);
+#else
+#define XLog(...);
+#endif
+
 @interface WebCacheFile ()
 
 @property (nonatomic, strong) AFURLSessionManager *manager;
@@ -53,8 +59,11 @@ static NSArray* gMethods = nil;
 
   // 响应资源文件的拦截
   if([WebCacheFile isNeedInterceptWithResourceTypes:super.request]) {
+    NSString *extension = mutableReqeust.URL.pathExtension;
+    XLog(@"resource url: %@, extension: %@", mutableReqeust.URL.absoluteString, extension);
     NSString *filePath = [self makeCacheFilePathByRequest];
     if ([[NSFileManager defaultManager] fileExistsAtPath:filePath]) {
+      XLog(@"=== response local file: %@", filePath);
       [self responseWithFile:filePath];
     } else {
       [self downloadResourcesRequest:[mutableReqeust copy]];
@@ -64,18 +73,17 @@ static NSArray* gMethods = nil;
   
   //响应指定方法的拦截
   if([WebCacheFile isNeedInterceptWithMethods:super.request]) {
+    XLog(@"method url: %@, type: %@", mutableReqeust.URL.absoluteString, mutableReqeust.HTTPMethod);
     NSMutableDictionary *requestHeaders = [mutableReqeust.allHTTPHeaderFields mutableCopy];
-    NSString *bodyDataStr = [[NSString alloc] initWithData:mutableReqeust.HTTPBody encoding:NSUTF8StringEncoding];
-    if(!bodyDataStr) {
-      bodyDataStr = [requestHeaders objectForKey:WkPostBodyKey];
-      if(bodyDataStr) {
-        [requestHeaders removeObjectForKey:WkPostBodyKey];
-        bodyDataStr = [bodyDataStr URLUTF8DecodingString];
-      } else {
-        
-      }
-      bodyDataStr = bodyDataStr?:@"{}";
+    // NSString *bodyDataStr = [[NSString alloc] initWithData:mutableReqeust.HTTPBody encoding:NSUTF8StringEncoding];
+    NSString *bodyDataStr = [requestHeaders objectForKey:WkPostBodyKey];
+    if(bodyDataStr) {
+      [requestHeaders removeObjectForKey:WkPostBodyKey];
+      bodyDataStr = [bodyDataStr URLUTF8DecodingString];
+    } else {
+      
     }
+    bodyDataStr = bodyDataStr?:@"{}";
     NSData *jsonData = [bodyDataStr dataUsingEncoding:NSUTF8StringEncoding];
     [mutableReqeust setAllHTTPHeaderFields:requestHeaders];
     [mutableReqeust setHTTPBody:jsonData];
@@ -90,22 +98,28 @@ static NSArray* gMethods = nil;
 #pragma mark - 协议自定义实现
 
 //组装数据，响应被拦截的请求
-- (void)reponseIntercept:(NSURLResponse * _Nonnull)response andData:(NSData *)data {
+- (void)reponseIntercept:(NSURLResponse * _Nullable)response andData:(NSData * _Nullable)data {
   [[self client] URLProtocol:self didReceiveResponse:response cacheStoragePolicy:NSURLCacheStorageNotAllowed];
   [[self client] URLProtocol:self didLoadData:data];
   [[self client] URLProtocolDidFinishLoading:self];
 }
 
 - (void)responseWithFile:(NSString *)filePath {
-  NSLog(@"== %@", filePath);
-  NSString *mimeType = [self getMimeTypeWithFilePath:filePath];
-  NSData *data = [NSData dataWithContentsOfFile:filePath];
-  NSURLResponse *response = [[NSURLResponse alloc] initWithURL:super.request.URL
-                                                      MIMEType:mimeType
-                                         expectedContentLength:-1
-                                              textEncodingName:nil];
-  
-  [self reponseIntercept:response andData:data];
+  if(filePath) {
+    NSString *mimeType = [self getMimeTypeWithFilePath:filePath];
+    NSURLResponse *response = [[NSURLResponse alloc] initWithURL:super.request.URL
+                                                        MIMEType:mimeType
+                                           expectedContentLength:-1
+                                                textEncodingName:nil];
+    NSData *data = [NSData dataWithContentsOfFile:filePath];
+    [self reponseIntercept:response andData:data];
+  } else {
+    NSURLResponse *response = [[NSURLResponse alloc] initWithURL:super.request.URL
+                                                        MIMEType:nil
+                                           expectedContentLength:-1
+                                                textEncodingName:nil];
+    [self reponseIntercept:response andData:nil];
+  }
 }
 
 //普通请求
@@ -116,8 +130,13 @@ static NSArray* gMethods = nil;
   } downloadProgress:^(NSProgress * _Nonnull downloadProgress) {
     
   } completionHandler:^(NSURLResponse * _Nonnull response, id  _Nullable responseObject, NSError * _Nullable error) {
-    NSData *data= [NSJSONSerialization dataWithJSONObject:responseObject options:NSJSONWritingPrettyPrinted error:nil];
-    [self reponseIntercept:response andData:data];
+    if(error) {
+      XLog(@"=== downloadResourcesRequest error: %@ - %@", request.URL.absoluteString, error.description);
+      [self reponseIntercept:response andData:nil];
+    } else {
+      NSData *data= [NSJSONSerialization dataWithJSONObject:responseObject options:NSJSONWritingPrettyPrinted error:nil];
+      [self reponseIntercept:response andData:data];
+    }
   }];
   [task resume];
 }
@@ -134,8 +153,14 @@ static NSArray* gMethods = nil;
     return [path URLByAppendingPathComponent:[NSString stringWithFormat:@"%@", name]];
     
   } completionHandler:^(NSURLResponse *response, NSURL *filePath, NSError *error) {
-    [JKSandBoxManager moveFileFrom:filePath.path to:targetFilePath];
-    [self responseWithFile:targetFilePath];
+    if(error) {
+      XLog(@"=== downloadResourcesRequest error: %@ - %@", request.URL.absoluteString, error.description);
+      [self responseWithFile:nil];
+    } else {
+      XLog(@"=== response download file: %@", targetFilePath);
+      [JKSandBoxManager moveFileFrom:filePath.path to:targetFilePath];
+      [self responseWithFile:targetFilePath];
+    }
   }];
   [task resume];
 }
