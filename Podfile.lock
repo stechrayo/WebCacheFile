@@ -14,7 +14,7 @@ PODS:
   - AFNetworking/Serialization (4.0.1)
   - AFNetworking/UIKit (4.0.1):
     - AFNetworking/NSURLSession
-  - JKSandBoxManager (0.1.6.9)
+  - JKSandBoxManager (0.1.7.1)
 
 DEPENDENCIES:
   - AFNetworking
@@ -27,7 +27,7 @@ SPEC REPOS:
 
 SPEC CHECKSUMS:
   AFNetworking: 7864c38297c79aaca1500c33288e429c3451fdce
-  JKSandBoxManager: a3d8039a5838113a57b0e8243bd4f6d6aa78032e
+  JKSandBoxManager: 1de779140b7c768a2362bfbd35b26e66dcb77392
 
 PODFILE CHECKSUM: 6f9478533cb9ca304ef431b295aa332dec0eae57
 
