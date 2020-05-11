@@ -55,6 +55,11 @@ Cache the web file locally for faster access next time.
 
 注意，对于在WkWebView里 post 请求 body 数据被清空的临时处理方案时，在js层将body数据放入request header中，key固定为`#define WkPostBodyKey @"headerBody"`。
 
+```
+Failed to execute 'setRequestHeader' on 'XMLHttpRequest': Value is not a valid ByteString
+```
+若提示上面信息，即请求的头信息中不能出现中文或UTF-8码的字符，需要js端使用`encodeURIComponent`编码内容，iOS端使用`- (NSString *)URLUTF8DecodingString`解码。
+
 -------
 
 参考资料：
